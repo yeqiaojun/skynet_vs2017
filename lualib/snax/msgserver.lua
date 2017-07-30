@@ -72,6 +72,7 @@ Config for server.start:
 	conf.kick_handler(uid, subid) : the functon when a user logout. (may call by login server)
 	conf.request_handler(username, session, msg) : the function when recv a new request.
 	conf.register_handler(servername) : call when gate open
+	conf.connect_handler(username, fd) : call when client connected
 	conf.disconnect_handler(username) : call when a connection disconnect (afk)
 ]]
 
@@ -132,6 +133,7 @@ function server.start(conf)
 		login = assert(conf.login_handler),
 		logout = assert(conf.logout_handler),
 		kick = assert(conf.kick_handler),
+		broadcast = assert(conf.broadcast),
 	}
 
 	function handler.command(cmd, source, ...)
@@ -186,6 +188,7 @@ function server.start(conf)
 		u.version = idx
 		u.fd = fd
 		u.ip = addr
+		u.username = username
 		connection[fd] = u
 	end
 
@@ -207,7 +210,9 @@ function server.start(conf)
 
 		if close then
 			gateserver.closeclient(fd)
+			return false
 		end
+		return true
 	end
 
 	local request_handler = assert(conf.request_handler)
@@ -302,10 +307,14 @@ function server.start(conf)
 		end
 	end
 
+	local connect_handler = assert(conf.connect_handler)
 	function handler.message(fd, msg, sz)
 		local addr = handshake[fd]
 		if addr then
-			auth(fd,addr,msg,sz)
+			if auth(fd,addr,msg,sz) then
+				local u = connection[fd]
+				connect_handler(u.username, fd)
+			end
 			handshake[fd] = nil
 		else
 			request(fd, msg, sz)

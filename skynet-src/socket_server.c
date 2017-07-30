@@ -80,7 +80,7 @@ struct socket {
 	int fd;
 	int id;
 	uint16_t protocol;
-	uint16_t type;
+	uint32_t type;
 	int64_t warn_size;
 	union {
 		int size;
@@ -314,7 +314,9 @@ socket_server_create() {
 	ss->event_index = 0;
 	memset(&ss->soi, 0, sizeof(ss->soi));
 	FD_ZERO(&ss->rfds);
+#ifndef _MSC_VER
 	assert(ss->recvctrl_fd < FD_SETSIZE);
+#endif
 
 	return ss;
 }
@@ -432,8 +434,13 @@ open_socket(struct socket_server *ss, struct request_open * request, struct sock
 			continue;
 		}
 		socket_keepalive(sock);
+#ifdef _MSC_VER
+		status = connect( sock, ai_ptr->ai_addr, ai_ptr->ai_addrlen);
+		sp_nonblocking(sock);
+#else
 		sp_nonblocking(sock);
 		status = connect( sock, ai_ptr->ai_addr, ai_ptr->ai_addrlen);
+#endif
 		if ( status != 0 && errno != EINPROGRESS) {
 			close(sock);
 			sock = -1;
@@ -634,14 +641,14 @@ send_buffer(struct socket_server *ss, struct socket *s, struct socket_message *r
 				return -1;
 			}
 		} 
-		// step 4
+			// step 4
 		assert(send_buffer_empty(s) && s->wb_size == 0);
-		sp_write(ss->event_fd, s->fd, s, false);			
+			sp_write(ss->event_fd, s->fd, s, false);
 
-		if (s->type == SOCKET_TYPE_HALFCLOSE) {
+			if (s->type == SOCKET_TYPE_HALFCLOSE) {
 				force_close(ss, s, result);
 				return SOCKET_CLOSE;
-		}
+			}
 		if(s->warn_size > 0){
 				s->warn_size = 0;
 				result->opaque = s->opaque;

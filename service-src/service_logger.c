@@ -5,6 +5,11 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifdef _MSC_VER
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#endif
+
 struct logger {
 	FILE * handle;
 	char * filename;
@@ -40,13 +45,26 @@ logger_cb(struct skynet_context * context, void *ud, int type, int session, uint
 		}
 		break;
 	case PTYPE_TEXT:
+#ifdef _MSC_VER
+		fwprintf(inst->handle, L"[:%08x] ",source);
+		int wlen = MultiByteToWideChar(CP_UTF8,0,msg,sz,NULL,0);
+		wchar_t *wbuf = (wchar_t*)malloc((sz+1)*sizeof(wchar_t));
+		MultiByteToWideChar(CP_UTF8,0,msg,sz,wbuf,wlen);
+		wbuf[wlen]=0;
+		fwprintf(inst->handle,L"%s\n",wbuf);
+
+		if(inst->handle != stdout)
+			fwprintf(stdout, L"%s\n", wbuf);
+
+		free(wbuf);
+#else
 		fprintf(inst->handle, "[:%08x] ",source);
 		fwrite(msg, sz , 1, inst->handle);
 		fprintf(inst->handle, "\n");
+#endif
 		fflush(inst->handle);
 		break;
 	}
-
 	return 0;
 }
 
@@ -63,6 +81,9 @@ logger_init(struct logger * inst, struct skynet_context *ctx, const char * parm)
 	} else {
 		inst->handle = stdout;
 	}
+#ifdef _MSC_VER
+	_wsetlocale(0, L"chs");
+#endif
 	if (inst->handle) {
 		skynet_callback(ctx, inst, logger_cb);
 		skynet_command(ctx, "REG", ".logger");

@@ -7,6 +7,8 @@
 #include <assert.h>
 #include <string.h>
 
+#include <unistd.h>
+
 #include "rwlock.h"
 #include "skynet_malloc.h"
 #include "atomic.h"

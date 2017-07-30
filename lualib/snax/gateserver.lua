@@ -33,10 +33,12 @@ function gateserver.start(handler)
 
 	function CMD.open( source, conf )
 		assert(not socket)
+		print("xxxxx222222")
 		local address = conf.address or "0.0.0.0"
 		local port = assert(conf.port)
 		maxclient = conf.maxclient or 1024
 		nodelay = conf.nodelay
+		print("port".. port)
 		skynet.error(string.format("Listen on %s:%d", address, port))
 		socket = socketdriver.listen(address, port)
 		socketdriver.start(socket)
@@ -153,5 +155,7 @@ function gateserver.start(handler)
 		end)
 	end)
 end
+
+print("xxxxxx333")
 
 return gateserver

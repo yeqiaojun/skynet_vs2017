@@ -144,9 +144,9 @@ function convert.type(all, obj)
 				if fieldtype == "integer" then
 					field.decimal = mainkey
 				else
-					assert(field.array)
-					field.key = mainkey
-				end
+				assert(field.array)
+				field.key = mainkey
+			end
 			end
 			field.typename = fieldtype
 		else
@@ -164,9 +164,20 @@ end
 local function adjust(r)
 	local result = { type = {} , protocol = {} }
 
+	local last_tag = -1
+
 	for _, obj in ipairs(r) do
 		local set = result[obj.type]
 		local name = obj[1]
+		local tag = obj[2]
+		if tag == 0 then
+			assert(last_tag > 0)
+			tag = last_tag + 1
+			obj[2] = tag
+			last_tag = tag
+		elseif type(tag) == "number" then
+			last_tag = tag
+		end
 		assert(set[name] == nil , "redefined " .. name)
 		set[name] = convert[obj.type](result,obj)
 	end
@@ -176,9 +187,11 @@ end
 
 local buildin_types = {
 	integer = 0,
-	boolean = 1,
-	string = 2,
-	binary = 2,	-- binary is a sub type of string
+	real = 1,
+	boolean = 2,
+	string = 3,
+	variant = 4,
+	binary = 3,	-- binary is a sub type of string
 }
 
 local function checktype(types, ptype, t)
@@ -206,7 +219,7 @@ local function check_protocol(r)
 		local request = v.request
 		local response = v.response
 		local p = map[tag]
-
+		
 		if p then
 			error(string.format("redefined protocol tag %d at %s", tag, name))
 		end
@@ -291,7 +304,7 @@ local function packfield(f)
 		if f.extra then
 			table.insert(strtbl, packvalue(f.extra))	-- f.buildin can be integer or string
 		else
-			table.insert(strtbl, "\1\0")	-- skip (tag = 2)
+		table.insert(strtbl, "\1\0")	-- skip (tag = 2)
 		end
 		table.insert(strtbl, packvalue(f.tag))		-- tag (tag = 3)
 	else
@@ -361,6 +374,9 @@ local function packtype(name, t, alltypes)
 end
 
 local function packproto(name, p, alltypes)
+--	if p.request == nil then
+--		error(string.format("Protocol %s need request", name))
+--	end
 	if p.request then
 		local request = alltypes[p.request]
 		if request == nil then

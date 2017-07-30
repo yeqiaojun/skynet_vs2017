@@ -92,5 +92,6 @@ function handler.command(cmd, source, ...)
 	local f = assert(CMD[cmd])
 	return f(source, ...)
 end
+print("xxxxxx11111")
 
 gateserver.start(handler)

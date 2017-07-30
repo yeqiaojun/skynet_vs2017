@@ -9,10 +9,12 @@
 #define skynet_free free
 #define skynet_memalign memalign
 
+#ifndef NOUSE_JEMALLOC
 void * skynet_malloc(size_t sz);
 void * skynet_calloc(size_t nmemb,size_t size);
 void * skynet_realloc(void *ptr, size_t size);
 void skynet_free(void *ptr);
+#endif
 char * skynet_strdup(const char *str);
 void * skynet_lalloc(void *ptr, size_t osize, size_t nsize);	// use for lua
 void * skynet_memalign(size_t alignment, size_t size);
